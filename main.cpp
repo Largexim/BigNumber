@@ -39,7 +39,7 @@ public:
             number[i] = input % 10;
             input/=10;
         }
-
+        sizeCheck();
     }
     BigNumber(const string& input) {
 
@@ -69,6 +69,7 @@ public:
                 number[i] = input[size - 1 - i] - 48;
             }
         }
+        sizeCheck();
     }
     ~BigNumber(){
         delete [] number;
@@ -123,7 +124,19 @@ public:
         }
     }
     BigNumber operator/ (const BigNumber& input){
-        return division(input);
+        if(input.size==1&&input.number[0]==0){
+            cout<<"invalid!! : ";
+            return BigNumber("0");
+        }
+        else {
+            if (isNegative == input.isNegative)
+                return division(input);
+            else {
+                BigNumber result = division(input);
+                result.isNegative = true;
+                return result;
+            }
+        }
     }
     BigNumber operator* (const BigNumber& input){
         if(isNegative==input.isNegative)
@@ -135,7 +148,17 @@ public:
         }
     }
     BigNumber operator^ (const BigNumber& input){
-        return power(input);
+        if(input.size==1&&input.number[0]==0){
+            BigNumber res("1");
+            return res;
+        }
+        else if(input.isNegative){
+            BigNumber res("0");
+            return res;
+        }
+        else {
+            return power(input);
+        }
     }
     BigNumber& operator= (const BigNumber& input){
         if(this == &input)
@@ -509,26 +532,31 @@ int main() {
             }
             switch (menu) {
                 case 1:
+                    cout<<"\n";
                     cout<<"Result : ";
                     (n1 + n2).print();
                     printMenu();
                     break;
                 case 2:
+                    cout<<"\n";
                     cout<<"Result : ";
                     (n1 - n2).print();
                     printMenu();
                     break;
                 case 3:
+                    cout<<"\n";
                     cout<<"Result : ";
                     (n1 * n2).print();
                     printMenu();
                     break;
                 case 4:
+                    cout<<"\n";
                     cout<<"Result : ";
                     (n1 / n2).print();
                     printMenu();
                     break;
                 case 5:
+                    cout<<"\n";
                     cout<<"Result : ";
                     (n1 ^ n2).print();
                     printMenu();
