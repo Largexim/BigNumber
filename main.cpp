@@ -250,19 +250,7 @@ public:
     }
 
 private:
-    //Calculator functions
-    /*BigNumber power(const BigNumber& input){
-        BigNumber newNum("1");
-        BigNumber pow = input;
-        while(true)
-        {
-            newNum = newNum * *this;
-            pow = pow - 1;
-            if(pow == 0) {
-                return newNum;;
-            }
-        }
-    }*/
+
     BigNumber power(const BigNumber& input){
         BigNumber result(*this);
         BigNumber powerTo(input);
@@ -271,7 +259,6 @@ private:
                 if((powerTo%2)!=0)
                     carry = carry * result;
                 powerTo = powerTo / 2;
-                powerTo.print();
                 result = result * result;
             }
             result = result * carry;
