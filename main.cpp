@@ -233,9 +233,15 @@ public:
     }
     void operator++ () {*this = *this + 1;}
     void operator-- () {*this = *this - 1;}
+    BigNumber operator% (const BigNumber& input){
+            BigNumber result("0");
+            result = *this - (*this / input) * input;
+            return result;
+    }
 
     //Print
     void print(){
+        cout<<"size = "<<size<<endl;
         if(isNegative)
             cout<<"-";
         for(long i=size-1; i>=0; i--)
@@ -245,7 +251,7 @@ public:
 
 private:
     //Calculator functions
-    BigNumber power(const BigNumber& input){
+    /*BigNumber power(const BigNumber& input){
         BigNumber newNum("1");
         BigNumber pow = input;
         while(true)
@@ -256,6 +262,20 @@ private:
                 return newNum;;
             }
         }
+    }*/
+    BigNumber power(const BigNumber& input){
+        BigNumber result(*this);
+        BigNumber powerTo(input);
+        BigNumber carry("1");
+            while(powerTo>1){
+                if((powerTo%2)!=0)
+                    carry = carry * result;
+                powerTo = powerTo / 2;
+                powerTo.print();
+                result = result * result;
+            }
+            result = result * carry;
+        return result;
     }
     BigNumber division(const BigNumber& input){
         BigNumber result;
@@ -296,37 +316,39 @@ private:
     }
     BigNumber multiplication(const BigNumber& input){
         int carry = 0;
-        BigNumber maxNum = max(*this,input);
-        BigNumber minNum = min(*this,input);
         BigNumber newNum;
-        if(maxNum==input) {
-            newNum.size = (input.size + 1) * 2;
-            newNum.number = new int[(input.size + 1) * 2];
-            {
-                for(int i=0; i<newNum.size; i++){
-                    newNum.number[i]=0;
-                }
-            }
+        if(size>=input.size) {
+            newNum.size = (size + 1) * 2;
+            newNum.number = new int[newNum.size];
         }
         else {
-            newNum.size = (size + 1) * 2;
-            newNum.number = new int[(size + 1) * 2];
-            for(int i=0; i<newNum.size; i++){
-                newNum.number[i]=0;
-            }
+            newNum.size = (input.size + 1) * 2;
+            newNum.number = new int[newNum.size];
         }
 
         for(int i=0 ; i<input.size ; i++)
         {
             for(int j=0 ; j<size ; j++)
             {
-                int x = newNum.number[j+i] + (input.number[i] * number[j] + carry);
-                newNum.number[j+i] = x % 10;
-                carry = x  / 10;
+                if(i==0){
+                    int x = (input.number[i] * number[j] + carry);
+                    newNum.number[j+i] = x % 10;
+                    carry = x  / 10;
 
-                if(j == size -1) {
-                    newNum.number[j+1+i] = carry;
-                    carry = 0;
+                    if(j == size -1) {
+                        newNum.number[j+1+i] = carry;
+                        carry = 0;
+                    }
+                }
+                else {
+                    int x = newNum.number[j + i] + (input.number[i] * number[j] + carry);
+                    newNum.number[j + i] = x % 10;
+                    carry = x / 10;
+
+                    if (j == size - 1) {
+                        newNum.number[j + 1 + i] = carry;
+                        carry = 0;
+                    }
                 }
             }
         }
@@ -360,14 +382,28 @@ private:
         return result;
     }
     BigNumber sum(const BigNumber& input){
-        long minSize = min(*this,input).size;
-        long maxSize = max(*this,input).size;
-        BigNumber result(maxSize+1,isNegative&&input.isNegative);
+        long minSize;
+        long maxSize;
+        if(input.size>=size) {
+            minSize = size;
+            maxSize = input.size;
+        }
+        else{
+            minSize = input.size;
+            maxSize = size;
+        }
+        BigNumber result(maxSize+1,false);
         int carry = 0;
         for(int i=0; i<result.size; i++){
             if(i>=minSize){
-                result.number[i] = max(*this,input).number[i] + carry;
-                carry=0;
+                if(maxSize==size) {
+                    result.number[i] = number[i] + carry;
+                    carry = 0;
+                }
+                else {
+                    result.number[i] = input.number[i] + carry;
+                    carry = 0;
+                }
             }
             else {
                 int sumOf = number[i] + input.number[i] + carry;
@@ -505,17 +541,13 @@ private:
                 break;
             size-=1;
         }
-        BigNumber newNum(size, isNegative);
-        for(int i=0; i<size; i++){
-            newNum.number[i] = number[i];
-        }
-        *this = newNum;
     }
 
 };
 BigNumber enterNumber();
 void printMenu();
 int main() {
+
     cout<<"         WellCome\nPress ENTER button to start\n";
     while (cin.get() != '\n');
     int menu=0;
