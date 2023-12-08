@@ -1,34 +1,40 @@
 #include <iostream>
+#include <time.h>
 using namespace std;
 class BigNumber{
 private:
+    long base;
+    long digits;
     long size;
     bool isNegative;
-    int* number{};
+    long long* number{};
 public:
     //Constructors
-    BigNumber() : size(1) , isNegative(false)  {number = new int[1]; number[0]=0;}
-    BigNumber(long s, bool iN) : size(s) , isNegative(iN) {number = new int[size];}
-    BigNumber(const BigNumber& input) : size(input.size), isNegative(input.isNegative) {
+    BigNumber() : size(1) ,base(10000000), isNegative(false)  {number = new long long[1]; number[0]=0;}
+    BigNumber(long s, bool iN) : base(10000000), size(s) , isNegative(iN) {number = new long long[size];}
+    BigNumber(const BigNumber& input) : base(10000000), size(input.size), isNegative(input.isNegative) {
 
         delete [] number;
-
-        number = new int[size];
+        digits = input.digits;
+        number = new long long[size];
         for (int i=0; i < size; i++){
             number[i] = input.number[i];
         }
     }
-    BigNumber(int input){
+    BigNumber(long long input){
+        base = 10000000;
         size=0;
         if(input==0) {
             size = 1;
-            number = new int[size];
+            number = new long long[size];
             number[0]=0;
         }
         for(int i=1; input/i !=0 ; i*=10)
             size++;
+        digits =size;
+        size = size/8 + 1;
 
-        number = new int[size];
+        number = new long long[size];
 
         if(input<0) {
             isNegative = true;
@@ -36,51 +42,74 @@ public:
         } else isNegative = false;
 
         for(int i=0; i<size; i++) {
-            number[i] = input % 10;
-            input/=10;
+            number[i] = input % base;
+            input/=base;
         }
-        sizeCheck();
+        //sizeCheck();
     }
     BigNumber(const string& input) {
-
-        if(input[0] == '-') {
+        if(input[0]=='-'){
             isNegative = true;
-
-            size = -1;
-            for (int i =0; input[i]; i++) {
-                size++;
+            size = 1;
+            int stringSize = -1;
+            for (int i = 1; input[i]; i++) {
+                stringSize++;
+                if ((i % 8) == 0)
+                    size++;
             }
-
-            number = new int[size];
-            for (int i = 0; i < size+1; i++) {
-                number[i] = input[size  - i] - 48;
-            }
-        }
-        else
-        {
-            isNegative = false;
-            size = 0;
-            for (int i =0; input[i]; i++) {
-                size++;
-            }
-
-            number = new int[size];
+            digits = stringSize;
+            number = new long long[size];
             for (int i = 0; i < size; i++) {
-                number[i] = input[size - 1 - i] - 48;
+                long long n = 0;
+                long long b = 1;
+                for (int j = 0; j < 8; j++) {
+                    n += (input[stringSize] - 48) * b;
+                    b *= 10;
+                    stringSize--;
+                    if (stringSize < 1)
+                        break;
+                }
+                number[i] = n;
             }
         }
-        sizeCheck();
+        else{
+            isNegative = false;
+            size = 1;
+            int stringSize = 0;
+            for (int i = 1; input[i]; i++) {
+                stringSize++;
+                if ((i % 8) == 0)
+                    size++;
+            }
+            digits = stringSize+1;
+            number = new long long[size];
+            for (int i = 0; i < size; i++) {
+                long long n = 0;
+                long long b = 1;
+                for (int j = 0; j < 8; j++) {
+                    n += (input[stringSize] - 48) * b;
+                    b *= 10;
+                    stringSize--;
+                    if (stringSize < 0)
+                        break;
+                }
+                number[i] = n;
+            }
+        }
+
     }
     ~BigNumber(){
         delete [] number;
         number = nullptr;
     }
-
     //Binary operators
     BigNumber operator+ (const BigNumber& input)
     {
         if(isNegative==input.isNegative) {
-            return sum(input);
+            BigNumber result = sum(input);
+            if(isNegative)
+                result.isNegative= true;
+            return result;
         }
         else if(isNegative&&!input.isNegative) {
             BigNumber result = minus(input);
@@ -94,8 +123,6 @@ public:
                 result.isNegative= true;
             return result;
         }
-
-
     }
     BigNumber operator- (const BigNumber& input){
         if(!isNegative&&!input.isNegative){
@@ -161,11 +188,12 @@ public:
         }
     }
     BigNumber& operator= (const BigNumber& input){
+        digits = input.digits;
         if(this == &input)
             delete [] number;
         size = input.size;
         isNegative = input.isNegative;
-        number = new int[size];
+        number = new long long[size];
         for (int i=0; i < size; i++){
             number[i] = input.number[i];
         }
@@ -240,13 +268,50 @@ public:
     }
 
     //Print
-    void print(){
-        cout<<"size = "<<size<<endl;
-        if(isNegative)
-            cout<<"-";
-        for(long i=size-1; i>=0; i--)
-            cout<<number[i];
-        cout<<endl;
+    void print() {
+        if (isNegative)
+            cout << "-";
+        if (size == 1 && number[0] == 0)
+            cout << "0";
+        else {
+            for (long i = size - 1; i >= 0; i--) {
+                if (number[i] == 0)
+                    cout << "00000000";
+                else
+                    cout << number[i];
+            }
+        }
+        cout << endl;
+    }
+    BigNumber squareRoot(){
+        BigNumber result;
+        BigNumber bR("1");
+        BigNumber sR("1");
+        for(long i=0; i<=digits/2; i++)
+            bR = bR*10;
+        if (*this - (bR * bR)>0 && *this - (bR * bR) < bR)
+            return bR;
+        else if(*this - (sR * sR)>0 && *this - (sR * sR) < sR )
+            return sR;
+        else {
+            result = ((bR+sR)/2);
+            while(true){
+                if(bR==result)
+                    return result;
+                if(sR==result)
+                    return result;
+                if(result*result>*this) {
+                    bR = result;
+                    result = ((bR+sR)/2);
+                }
+                else if(*this - (result*result)>0 && *this - (result*result) > result ) {
+                    sR = result;
+                    result = ((bR+sR)/2);
+                }
+                else if(*this - (result*result)>=0 && *this - (result*result) < result )
+                    return result;
+            }
+        }
     }
 
 private:
@@ -258,19 +323,19 @@ private:
             while(powerTo>1){
                 if((powerTo%2)!=0)
                     carry = carry * result;
-                powerTo = powerTo / 2;
+                powerTo = (powerTo-(powerTo%2)) / 2;
                 result = result * result;
             }
             result = result * carry;
         return result;
     }
-    BigNumber division(const BigNumber& input){
+    BigNumber division(BigNumber input){
         BigNumber result;
         if(*this<input) {
             return result = 0;
         }
-        BigNumber rb = div(shiftRight(input.size-1),input.number[input.size-1]);
-        BigNumber rs = div(shiftRight(input.size-1),input.number[input.size-1]+1);
+        BigNumber rb = div(shiftRight(input.digits-1),input.shiftRight(input.digits-1));
+        BigNumber rs = div(shiftRight(input.digits-1),input.shiftRight(input.digits-1)+1);
         result = div((rb+rs),2);
         if((rb*input)<=*this){
             if (*this - (rb * input) < input) {
@@ -291,26 +356,28 @@ private:
             }
         }
     }
-    BigNumber div(const BigNumber& n1,const int& n2) {
+    BigNumber div(const BigNumber& n1,const BigNumber& n2) {
+        base = 100000000;
         BigNumber result(n1.size, false);
-        int carry = 0;
+        long long carry = 0;
             for (long j = n1.size-1; j >= 0 ; j--) {
-                result.number[j] = (n1.number[j]+carry) / (n2);
-                carry = (((n1.number[j]+carry) % (n2))) * 10;
+                result.number[j] = ((n1.number[j]+carry)-((n1.number[j]+carry)%n2.number[0])) / (n2.number[0]);
+                carry = (((n1.number[j]+carry) % (n2.number[0]))) * base;
             }
             result.sizeCheck();
         return result;
     }
     BigNumber multiplication(const BigNumber& input){
-        int carry = 0;
+        base = 100000000;
+        long long carry = 0;
         BigNumber newNum;
         if(size>=input.size) {
             newNum.size = (size + 1) * 2;
-            newNum.number = new int[newNum.size];
+            newNum.number =new long long[newNum.size];
         }
         else {
             newNum.size = (input.size + 1) * 2;
-            newNum.number = new int[newNum.size];
+            newNum.number =new long long[newNum.size];
         }
 
         for(int i=0 ; i<input.size ; i++)
@@ -318,9 +385,9 @@ private:
             for(int j=0 ; j<size ; j++)
             {
                 if(i==0){
-                    int x = (input.number[i] * number[j] + carry);
-                    newNum.number[j+i] = x % 10;
-                    carry = x  / 10;
+                    long  long x = (input.number[i] * number[j] + carry);
+                    newNum.number[j+i] = x % base;
+                    carry = (x-(x%base)) / base;
 
                     if(j == size -1) {
                         newNum.number[j+1+i] = carry;
@@ -328,9 +395,9 @@ private:
                     }
                 }
                 else {
-                    int x = newNum.number[j + i] + (input.number[i] * number[j] + carry);
-                    newNum.number[j + i] = x % 10;
-                    carry = x / 10;
+                    long long x = newNum.number[j + i] + (input.number[i] * number[j] + carry);
+                    newNum.number[j + i] = x % base;
+                    carry = (x-(x%base)) / base;
 
                     if (j == size - 1) {
                         newNum.number[j + 1 + i] = carry;
@@ -343,21 +410,22 @@ private:
         return newNum;
     }
     BigNumber minus(const BigNumber& input){
+        base = 100000000;
         BigNumber maxNum = max(*this,input);
         BigNumber minNum = min(*this,input);
         BigNumber result(maxNum.size, false);
-        int carry=0;
+        long long carry=0;
         for(int i=0; i<result.size; i++){
             if(i>=minNum.size) {
                 result.number[i] = (maxNum.number[i] + 10 + carry) % 10;
-                if((maxNum.number[i] + 10 + carry)>=10)
+                if((maxNum.number[i] + base + carry)>=base)
                 carry = 0;
                 else
                     carry = -1;
 
             }
             else if(maxNum.number[i]<minNum.number[i]){
-                result.number[i] = maxNum.number[i] - minNum.number[i] + 10 + carry;
+                result.number[i] = maxNum.number[i] - minNum.number[i] + base + carry;
                 carry = -1;
             }
             else{
@@ -369,6 +437,7 @@ private:
         return result;
     }
     BigNumber sum(const BigNumber& input){
+        base = 100000000;
         long minSize;
         long maxSize;
         if(input.size>=size) {
@@ -380,7 +449,7 @@ private:
             maxSize = size;
         }
         BigNumber result(maxSize+1,false);
-        int carry = 0;
+        long long carry = 0;
         for(int i=0; i<result.size; i++){
             if(i>=minSize){
                 if(maxSize==size) {
@@ -393,9 +462,9 @@ private:
                 }
             }
             else {
-                int sumOf = number[i] + input.number[i] + carry;
-                result.number[i] = sumOf % 10;
-                carry = sumOf / 10;
+                long long sumOf = number[i] + input.number[i] + carry;
+                result.number[i] = sumOf % base;
+                carry = (sumOf-(sumOf% base)) / base;
             }
         }
         result.sizeCheck();
@@ -403,26 +472,32 @@ private:
     }
 
     //Shift functions
-    BigNumber shiftLeft(int n)
+    BigNumber shiftLeft(long long n)
     {
-        BigNumber NewNum(size+n,isNegative);
-        NewNum.number = new int[NewNum.size];
-        for(int i=0; i<n ; i++)
-        {
-            NewNum.number[i] = 0;
-        }
-        for(int i = n, j = 0 ; i<NewNum.size ; i++, j++ )
-        {
-            NewNum.number[i] = number[j];
-        }
-        return NewNum;
-    }
-    BigNumber shiftRight(int n){
-        BigNumber newNum(size-n,isNegative);
-        for(int i=0; i<size-n; i++){
-            newNum.number[i]= number[i+n];
+        BigNumber newNum;
+        newNum = *this;
+        for(int i=0 ; i<n;i++){
+            newNum = newNum*10;
         }
         return newNum;
+    }
+    BigNumber shiftRight(long long n){
+        string s;
+        n++;
+        for(int i=0; i<size; i++){
+            if(number[2-i-1]==0)
+                s+="0000000";
+            s += to_string(number[size-i-1]);
+        }
+        for(int i=0 ; i<=s.length() ;i++){
+            if(s.length()-i<n)
+                s[s.length()-i] = '0';
+            else
+                s[s.length()-i]=s[s.length()-(i+n)];
+        }
+        BigNumber result(s);
+        result.sizeCheck();
+        return result;
     }
 
     //Comparison functions
@@ -528,71 +603,61 @@ private:
                 break;
             size-=1;
         }
+        BigNumber result(size,isNegative);
+        for(int i=0; i<size ; i++){
+            result.number[i]=number[i];
+        }
+        *this = result;
     }
 
 };
 BigNumber enterNumber();
 void printMenu();
 int main() {
-
-    cout<<"         WellCome\nPress ENTER button to start\n";
+    cout << "         WellCome\nPress ENTER button to start";
     while (cin.get() != '\n');
-    int menu=0;
-    while (menu!=-1){
-        BigNumber n1 = enterNumber();
-        BigNumber n2 = enterNumber();
-        printMenu();
-        while(menu!=-1) {
-            while (true) {
-                cin >> menu;
-                if (menu < 1 || menu > 8) {
-                    cout << "enter valid number : ";
-                } else break;
-            }
-            switch (menu) {
-                case 1:
-                    cout<<"\n";
-                    cout<<"Result : ";
-                    (n1 + n2).print();
-                    printMenu();
-                    break;
-                case 2:
-                    cout<<"\n";
-                    cout<<"Result : ";
-                    (n1 - n2).print();
-                    printMenu();
-                    break;
-                case 3:
-                    cout<<"\n";
-                    cout<<"Result : ";
-                    (n1 * n2).print();
-                    printMenu();
-                    break;
-                case 4:
-                    cout<<"\n";
-                    cout<<"Result : ";
-                    (n1 / n2).print();
-                    printMenu();
-                    break;
-                case 5:
-                    cout<<"\n";
-                    cout<<"Result : ";
-                    (n1 ^ n2).print();
-                    printMenu();
-                    break;
-                case 6:
-                    n1 = enterNumber();
-                    printMenu();
-                    break;
-                case 7:
-                    n2 = enterNumber();
-                    printMenu();
-                    break;
-                case 8:
-                    menu = -1;
-            }
+    BigNumber n1;
+    BigNumber n2;
+    int menu = 0;
+    while (menu != -1) {
+            printMenu();
+            cin >> menu;
+        switch (menu) {
+            case 1:{ n1 = enterNumber(); n2 = enterNumber();cout<<"\nResult :";
+                clock_t tStart = clock();
+                (n1+n2).print();
+                printf("Time taken: %.2fs\n", (double) (clock() - tStart) / CLOCKS_PER_SEC);
+                break;}
+            case 2:{ n1 = enterNumber(); n2 = enterNumber();cout<<"\nResult :";
+                clock_t tStart = clock();
+                (n1-n2).print();
+                printf("Time taken: %.2fs\n", (double) (clock() - tStart) / CLOCKS_PER_SEC);
+                break;}
+            case 3:{ n1 = enterNumber(); n2 = enterNumber();cout<<"\nResult :";
+                clock_t tStart = clock();
+                (n1*n2).print();
+                printf("Time taken: %.2fs\n", (double) (clock() - tStart) / CLOCKS_PER_SEC);
+                break;}
+            case 4:{ n1 = enterNumber(); n2 = enterNumber();cout<<"\nResult :";
+                clock_t tStart = clock();
+                (n1/n2).print();
+                printf("Time taken: %.2fs\n", (double) (clock() - tStart) / CLOCKS_PER_SEC);
+                break;}
+            case 5:{ n1 = enterNumber(); n2 = enterNumber();cout<<"\nResult :";
+                clock_t tStart = clock();
+                (n1^n2).print();
+                printf("Time taken: %.2fs\n", (double) (clock() - tStart) / CLOCKS_PER_SEC);
+                break;}
+            case 6: {n1 = enterNumber();cout<<"\nResult :";
+                clock_t tStart = clock();
+                n1.squareRoot().print();
+                printf("Time taken: %.2fs\n", (double) (clock() - tStart) / CLOCKS_PER_SEC);
+                break;}
+            case 7 :{ menu = -1;
+                break;}
         }
     }
+       return 0;
 }
 
 BigNumber enterNumber()
@@ -620,6 +685,6 @@ void printMenu(){
     cout<<endl;
     cout<<"1) NumberOne + NumberTwo."<<"          "<<"2)NumberOne - NumberTwo.\n";
     cout<<"3) NumberOne * NumberTwo."<<"          "<<"4)NumberOne / NumberTwo.\n";
-    cout<<"5) NumberOne ^ NumberTwo."<<"          "<<"6)Change numberOne.\n";
-    cout<<"7)Change numberTwo"<<"          "<<"8)Exit.\n";
+    cout<<"5) NumberOne ^ NumberTwo."<<"          "<<"6)squareRoot.\n";
+    cout<<"7)Exit"<<endl;
 }
